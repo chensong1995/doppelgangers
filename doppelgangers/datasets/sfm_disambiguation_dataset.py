@@ -55,10 +55,11 @@ class DoppelgangersDataset(Dataset):
         img_name0 = osp.join(self.image_dir, name0)
         img_name1 = osp.join(self.image_dir, name1)
 
-        image = read_loftr_matches(img_name0, img_name1, self.img_size, 8, True, keypoints0, keypoints1, matches, warp=True, conf=conf)
+        image, M = read_loftr_matches(img_name0, img_name1, self.img_size, 8, True, keypoints0, keypoints1, matches, warp=True, conf=conf)
         
         data = {
             'image': image,  # (4, h, w)
+            'M': M, # (2, 3)
             'gt': int(label)
         }
 

@@ -75,6 +75,7 @@ def read_loftr_matches(path0, path1,
 
     valid_warp_pts = [False]
     warp_rgb = True
+    M = np.zeros((2, 3), dtype=np.float32)
 
     # align image pair by estimating affine transformation from matches
     if (warp == True) and (matches is not None):
@@ -153,4 +154,4 @@ def read_loftr_matches(path0, path1,
         rgb_image[3:,:h_new0,:w_new0] = image0/255.
     keypoint_match_image = np.concatenate((keypoint_match_mask, rgb_image), axis=0)
     
-    return torch.from_numpy(keypoint_match_image) 
+    return torch.from_numpy(keypoint_match_image), torch.from_numpy(M)

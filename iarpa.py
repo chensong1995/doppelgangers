@@ -65,7 +65,7 @@ def setup_doppelgangers(args, pairs):
 
 
 def load_pairs(args):
-    end = len(os.listdir(args.image_dir)) + 1
+    end = len(os.listdir(args.image_dir))
     edges = np.array([(i, j) for i in range(1, end + 1) for j in range(i + 1, end + 1)])
     return edges
 

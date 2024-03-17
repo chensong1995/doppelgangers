@@ -1,3 +1,29 @@
+'''
+Description:
+    This script calcluates the matching scores between input image pairs.
+
+    * The input argument --image_dir points to a directory containing all .jpg images
+    of interest. Suppose the directory contains n images, the matching score will be
+    calculated for all n * (n - 1) / 2 pairs. For each pair, the matching score is a
+    scalar between 0 and 1. The higher the score is, the more likely the pair is good.
+
+    * The input argument --temp_dir specifies the directory to store intermediate
+    results. When the script finishes, the directory will contain edges_all.mat.
+
+    * The output of the script is stored in edges_all.mat as a MATLAB data file. The
+    file includes three objects.
+        - `prob` is an array with a length of n * (n - 1) / 2, indicating the
+        matching scores (in other words, the probabilities) for each pair.
+        - `edges` is an array of two-tuples with a length of n * (n - 1) / 2,
+        indicating the pair of image ids for each corresponding entry in `prob`.
+        - `xform` is an array of 3x3 estimated transformation matrices in 2D with a
+        length of n * (n - 1) / 2. Each 3x3 matriX transforms the first image into
+        the second image in the corresponding pair.
+
+Usage:
+    python iarpa.py --image_dir <dir_containing_all_jpg_images> --temp_dir <temp_dir>
+'''
+
 import argparse
 import os
 import subprocess
@@ -19,17 +45,23 @@ def parse_args():
         type=str,
         default='../data_more/t04_v01_s00_r04_VaryingAltitudes_A01'
     )
-    parser.add_argument('--temp_dir', type=str, default='tempp')
+    parser.add_argument('--temp_dir', type=str, default='temp')
     args = parser.parse_args()
     return args
 
 
 def create_pair_list(args, pairs):
+    # some image names do not end with .jpg. They end with png or other 3-letter (?)
+    # extensions.
+    image_id_to_image_name = {}
+    for image_name in os.listdir(args.image_dir):
+        image_id = int(image_name[len('image_'):-len('.jpg')])
+        image_id_to_image_name[image_id] = image_name
     # modified from doppelgangers/utils/process_database.py:create_image_pair_list
     pair_list = []
     for i, (image_id1, image_id2) in enumerate(pairs):
-        name1 = 'image_%06d.jpg' % image_id1
-        name2 = 'image_%06d.jpg' % image_id2
+        name1 = image_id_to_image_name[image_id1]
+        name2 = image_id_to_image_name[image_id2]
         pair_id = image_ids_to_pair_id(image_id1, image_id2)
         # label and num_matches are not used by save_loftr_matches
         label = 0
@@ -96,7 +128,6 @@ def main():
     args = parse_args()
     edges = load_pairs(args)
 
-    args.temp_dir = os.path.join(args.temp_dir, 'edges_all')
     probability, M = check_pairs(args, edges)
 
     savemat(

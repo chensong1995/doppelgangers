@@ -106,7 +106,11 @@ def save_loftr_matches_parallel(
                 output_dir = osp.join(output_path, f'loftr_match/{idx[i]}.npy')
                 np.save(
                     output_dir,
-                    {'kpt0': mkpts0[i], 'kpt1': mkpts1[i], 'conf': mconf[i]}
+                    {
+                        'kpt0': np.expand_dims(mkpts0[i], axis=0),
+                        'kpt1': np.expand_dims(mkpts1[i], axis=0),
+                        'conf': np.expand_dims(mconf[i], axis=0)
+                    }
                 )
 
 

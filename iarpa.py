@@ -104,6 +104,7 @@ def setup_doppelgangers(args, pairs):
 
     example_config['data']['image_dir'] = args.image_dir
     example_config['data']['loftr_match_dir'] = loftr_matches_path
+    example_config['data']['test']['batch_size'] = args.batch_size
     example_config['data']['test']['pair_path'] = pair_path
     example_config['data']['output_path'] = args.temp_dir
 

@@ -77,7 +77,11 @@ class LoFTR(nn.Module):
 
         # 5. match fine-level
         self.fine_matching(feat_f0_unfold, feat_f1_unfold, data)
-        return data
+        return {
+            'mkpts0_f': data['mkpts0_f'],
+            'mkpts1_f': data['mkpts1_f'],
+            'mconf': data['mconf']
+        }
 
     def load_state_dict(self, state_dict, *args, **kwargs):
         for k in list(state_dict.keys()):

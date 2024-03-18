@@ -53,7 +53,8 @@ def save_loftr_matches_parallel(
     output_path,
     model_weight_path='weights/outdoor_ds.ckpt',
     batch_size=8,
-    num_workers=4
+    num_workers=4,
+    img_size=1024,
 ):
     '''
     Save the LoFTR matches in parallel. This is the parallel implementation of
@@ -72,13 +73,14 @@ def save_loftr_matches_parallel(
             Total batch size across all GPUs.
         num_workers: int
             Number of CPU workers to load the pairs.
+        img_size: int
+            Side length of the image after resizing.
     '''
-    import pdb
     matcher = LoFTR(config=default_cfg)
     matcher.load_state_dict(torch.load(model_weight_path)['state_dict'])
     matcher = torch.nn.DataParallel(matcher.eval()).cuda()
 
-    dataset = PairsDataset(data_path, pair_path)
+    dataset = PairsDataset(data_path, pair_path, img_size=img_size)
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=False
     )

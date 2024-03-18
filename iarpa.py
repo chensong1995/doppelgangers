@@ -15,10 +15,15 @@ Description:
     * The input argument --num_workers specifies the number of CPU workers in the
     dataloader.
 
+    * The input argument --img_size specifies the side length of the image after
+    resizing in LoFTR inference.
+
     * The output of the script is stored in edges_all.mat as a MATLAB data file. The
     file includes three objects.
         - `prob` is an array with a length of n * (n - 1) / 2, indicating the
-        matching scores (in other words, the probabilities) for each pair.
+        matching scores (in other words, the probabilities) for each pair. Each
+        element in the array is a 2-tuple, representing the raw values before passing
+        to the softmax activation function to extract the probabilities.
         - `edges` is an array of two-tuples with a length of n * (n - 1) / 2,
         indicating the pair of image ids for each corresponding entry in `prob`.
         - `xform` is an array of 3x3 estimated transformation matrices in 2D with a
@@ -30,7 +35,8 @@ Usage:
         --image_dir <dir_containing_all_jpg_images> \
         --temp_dir <temp_dir> \
         --batch_size <batch_size> \
-        --num_workers <num_workers>
+        --num_workers <num_workers> \
+        --img_size <img_size>
 '''
 
 import argparse
@@ -56,7 +62,8 @@ def parse_args():
     )
     parser.add_argument('--temp_dir', type=str, default='temp')
     parser.add_argument('--batch_size', type=int, default=8)
-    parser.add_argument('--num_workers', type=int, default=4)
+    parser.add_argument('--num_workers', type=int, default=8)
+    parser.add_argument('--img_size', type=int, default=1024)
     args = parser.parse_args()
     return args
 
@@ -93,7 +100,8 @@ def setup_doppelgangers(args, pairs):
         pair_path,
         args.temp_dir,
         batch_size=args.batch_size,
-        num_workers=args.num_workers
+        num_workers=args.num_workers,
+        img_size=args.img_size
     )
     torch.cuda.empty_cache()
 

@@ -2,13 +2,18 @@
 Description:
     This script calcluates the matching scores between input image pairs.
 
-    * The input argument --image_dir points to a directory containing all .jpg images
+    * The input argument --image_dir points to a directory containing all the images
     of interest. Suppose the directory contains n images, the matching score will be
     calculated for all n * (n - 1) / 2 pairs. For each pair, the matching score is a
     scalar between 0 and 1. The higher the score is, the more likely the pair is good.
 
     * The input argument --temp_dir specifies the directory to store intermediate
     results. When the script finishes, the directory will contain edges_all.mat.
+
+    * The input argument --batch_size specifies thee total batch size in all GPUs.
+
+    * The input argument --num_workers specifies the number of CPU workers in the
+    dataloader.
 
     * The output of the script is stored in edges_all.mat as a MATLAB data file. The
     file includes three objects.
@@ -21,7 +26,11 @@ Description:
         the second image in the corresponding pair.
 
 Usage:
-    python iarpa.py --image_dir <dir_containing_all_jpg_images> --temp_dir <temp_dir>
+    python iarpa.py \
+        --image_dir <dir_containing_all_jpg_images> \
+        --temp_dir <temp_dir> \
+        --batch_size <batch_size> \
+        --num_workers <num_workers>
 '''
 
 import argparse
@@ -35,7 +44,7 @@ import torch
 import yaml
 
 from doppelgangers.utils.database import image_ids_to_pair_id
-from doppelgangers.utils.loftr_matches import save_loftr_matches
+from doppelgangers.utils.loftr_matches import save_loftr_matches_parallel
 
 
 def parse_args():
@@ -46,6 +55,8 @@ def parse_args():
         default='../data_more/t04_v01_s00_r04_VaryingAltitudes_A01'
     )
     parser.add_argument('--temp_dir', type=str, default='temp')
+    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--num_workers', type=int, default=4)
     args = parser.parse_args()
     return args
 
@@ -77,7 +88,13 @@ def setup_doppelgangers(args, pairs):
     loftr_matches_path = os.path.join(args.temp_dir, 'loftr_match')
     os.makedirs(loftr_matches_path, exist_ok=True)
     pair_path = create_pair_list(args, pairs)
-    save_loftr_matches(args.image_dir, pair_path, args.temp_dir)
+    save_loftr_matches_parallel(
+        args.image_dir,
+        pair_path,
+        args.temp_dir,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers
+    )
     torch.cuda.empty_cache()
 
     # create config file

@@ -99,6 +99,7 @@ def main_worker(gpu, ngpus_per_node, cfg, args):
     gt_list = list()
     pred_list = list()
     prob_list = list()
+    M_list = list()
     with torch.no_grad():
         for bidx, data in tqdm.tqdm(enumerate(test_loader)):
             data['image'] = data['image'].cuda()
@@ -111,11 +112,13 @@ def main_worker(gpu, ngpus_per_node, cfg, args):
                 prob_list.append(score[i].cpu().numpy())
                 pred_list.append(torch.argmax(score,dim=1)[i].cpu().numpy())
                 gt_list.append(gt[i].cpu().numpy())
+                M_list.append(np.concatenate([data['M'][i].numpy(), [[0, 0, 1]]], axis=0))
     
     gt_list = np.array(gt_list).reshape(-1)
     pred_list = np.array(pred_list).reshape(-1)
     prob_list = np.array(prob_list).reshape(-1, 2)    
-    np.save(os.path.join(cfg.data.output_path, "pair_probability_list.npy"), {'pred': pred_list, 'gt': gt_list, 'prob': prob_list})
+    M_list = np.array(M_list).reshape(-1, 3, 3)
+    np.save(os.path.join(cfg.data.output_path, "pair_probability_list.npy"), {'pred': pred_list, 'gt': gt_list, 'prob': prob_list, 'M': M_list})
     print("Test done.")
 
 

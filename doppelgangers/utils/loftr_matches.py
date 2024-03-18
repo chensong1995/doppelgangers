@@ -1,56 +1,11 @@
 import torch
-import cv2
 import numpy as np
 import os.path as osp
 import tqdm
-from PIL import Image, ImageOps
 
+from .input_utils import read_image
+from .pairs_dataset import PairsDataset
 from ..third_party.loftr import LoFTR, default_cfg
-
-def get_resized_wh(w, h, resize=None):
-    if resize is not None:  # resize the longer edge
-        scale = resize / max(h, w)
-        w_new, h_new = int(round(w*scale)), int(round(h*scale))
-    else:
-        w_new, h_new = w, h
-    return w_new, h_new
-
-
-def get_divisible_wh(w, h, df=None):
-    if df is not None:
-        w_new, h_new = map(lambda x: int(x // df * df), [w, h])
-    else:
-        w_new, h_new = w, h
-    if w_new == 0:
-        w_new = df
-    if h_new == 0:
-        h_new = df
-    return w_new, h_new
-
-
-def read_image(img_pth, img_size, df, padding):
-    if str(img_pth).endswith('gif'):
-        
-        pil_image = ImageOps.grayscale(Image.open(str(img_pth)))
-        img_raw = np.array(pil_image)
-    else:
-        img_raw = cv2.imread(img_pth, cv2.IMREAD_GRAYSCALE)
-
-    w, h = img_raw.shape[1], img_raw.shape[0]
-    w_new, h_new = get_resized_wh(w, h, img_size)
-    w_new, h_new = get_divisible_wh(w_new, h_new, df)
-
-    if padding:  # padding
-        pad_to = max(h_new, w_new)    
-        mask = np.zeros((1,pad_to, pad_to), dtype=bool)
-        mask[:,:h_new,:w_new] = True
-        mask = mask[:,::8,::8]
-    
-    image = cv2.resize(img_raw, (w_new, h_new))
-    pad_image = np.zeros((1,1, pad_to, pad_to), dtype=np.float32)
-    pad_image[0,0,:h_new,:w_new]=image/255.
-
-    return pad_image, mask
 
 
 def save_loftr_matches(data_path, pair_path, output_path, model_weight_path="weights/outdoor_ds.ckpt"):
@@ -90,5 +45,68 @@ def save_loftr_matches(data_path, pair_path, output_path, model_weight_path="wei
             mconf = batch['mconf'].cpu().numpy()
 
             np.save(output_dir, {"kpt0": mkpts0, "kpt1": mkpts1, "conf": mconf})
+
+
+def save_loftr_matches_parallel(
+    data_path,
+    pair_path,
+    output_path,
+    model_weight_path='weights/outdoor_ds.ckpt',
+    batch_size=8,
+    num_workers=4
+):
+    '''
+    Save the LoFTR matches in parallel. This is the parallel implementation of
+    save_loftr_matches().
+
+    Parameters:
+        data_path: str
+            Path to the directory containing all the images of interest.
+        pair_path: str
+            Path to the .npy file created by create_pair_list().
+        output_path: str
+            Path to the directory where the output .npy files will be stored.
+        model_weight_path: str
+            Path to the LoFTR weights.
+        batch_size: int
+            Total batch size across all GPUs.
+        num_workers: int
+            Number of CPU workers to load the pairs.
+    '''
+    import pdb
+    matcher = LoFTR(config=default_cfg)
+    matcher.load_state_dict(torch.load(model_weight_path)['state_dict'])
+    matcher = torch.nn.DataParallel(matcher.eval()).cuda()
+
+    dataset = PairsDataset(data_path, pair_path)
+    data_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size, shuffle=False
+    )
+
+    with torch.no_grad():
+        for batch in tqdm.tqdm(data_loader):
+            idx = batch['idx'].cpu().numpy()
+            batch_size = idx.shape[0]
+
+            num_processed = 0
+            for i in range(len(idx)):
+                output_dir = osp.join(output_path, f'loftr_match/{idx[i]}.npy')
+                if osp.exists(output_dir):
+                    num_processed += 1
+            if num_processed == batch_size:
+                continue
+
+            batch = matcher(batch)
+
+            mkpts0 = batch['mkpts0_f'].cpu().numpy()
+            mkpts1 = batch['mkpts1_f'].cpu().numpy()
+            mconf = batch['mconf'].cpu().numpy()
+
+            for i in range(len(idx)):
+                output_dir = osp.join(output_path, f'loftr_match/{idx[i]}.npy')
+                np.save(
+                    output_dir,
+                    {'kpt0': mkpts0[i], 'kpt1': mkpts1[i], 'conf': mconf[i]}
+                )
 
 

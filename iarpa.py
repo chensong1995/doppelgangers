@@ -21,9 +21,7 @@ Description:
     * The output of the script is stored in edges_all.mat as a MATLAB data file. The
     file includes three objects.
         - `prob` is an array with a length of n * (n - 1) / 2, indicating the
-        matching scores (in other words, the probabilities) for each pair. Each
-        element in the array is a 2-tuple, representing the raw values before passing
-        to the softmax activation function to extract the probabilities.
+        matching scores (in other words, the probabilities) for each pair.
         - `edges` is an array of two-tuples with a length of n * (n - 1) / 2,
         indicating the pair of image ids for each corresponding entry in `prob`.
         - `xform` is an array of 3x3 estimated transformation matrices in 2D with a

@@ -82,7 +82,7 @@ def save_loftr_matches_parallel(
 
     dataset = PairsDataset(data_path, pair_path, img_size=img_size)
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=False
+        dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
     )
 
     with torch.no_grad():

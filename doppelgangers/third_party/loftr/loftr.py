@@ -77,7 +77,16 @@ class LoFTR(nn.Module):
 
         # 5. match fine-level
         self.fine_matching(feat_f0_unfold, feat_f1_unfold, data)
+
+        # `device_ids` is the CUDA device index.
+        # `b_ids` is the index in the batch for `mkpts0_f`, `mkpts1_f`, and 'mconf'
+        # `b_ids`, `mkpts0_f`, `mkpts1_f`, and `mconf` all have the same length,
+        # equal to the total number of extracted keypoints from all examples in the
+        # batch on this device.
+        device_ids = data['mkpts0_f'].device.index * torch.ones_like(data['b_ids'])
         return {
+            'device_ids': device_ids,
+            'b_ids': data['b_ids'],
             'mkpts0_f': data['mkpts0_f'],
             'mkpts1_f': data['mkpts1_f'],
             'mconf': data['mconf']

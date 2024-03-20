@@ -103,16 +103,17 @@ def save_loftr_matches_parallel(
             mkpts0 = batch['mkpts0_f'].cpu().numpy()
             mkpts1 = batch['mkpts1_f'].cpu().numpy()
             mconf = batch['mconf'].cpu().numpy()
+            device_ids = batch['device_ids'].cpu().numpy()
+            b_ids = batch['b_ids'].cpu().numpy()
 
-            for i in range(len(idx)):
-                output_dir = osp.join(output_path, f'loftr_match/{idx[i]}.npy')
-                np.save(
-                    output_dir,
-                    {
-                        'kpt0': np.expand_dims(mkpts0[i], axis=0),
-                        'kpt1': np.expand_dims(mkpts1[i], axis=0),
-                        'conf': np.expand_dims(mconf[i], axis=0)
-                    }
-                )
-
-
+            i = 0
+            for device_id in np.unique(device_ids):
+                device_mask = device_ids == device_id
+                for b_id in np.unique(b_ids[device_mask]):
+                    batch_mask = b_ids == b_id
+                    kpt0 = mkpts0[device_mask & batch_mask]
+                    kpt1 = mkpts1[device_mask & batch_mask]
+                    conf = mconf[device_mask & batch_mask]
+                    output_dir = osp.join(output_path, f'loftr_match/{idx[i]}.npy')
+                    np.save(output_dir, {'kpt0': kpt0, 'kpt1': kpt1, 'conf': conf})
+                    i += 1
